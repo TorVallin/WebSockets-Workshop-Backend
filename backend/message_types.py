@@ -53,20 +53,29 @@ class RoomInfo(BaseModel):
 class WsAllRooms(BaseModel):
     event_type: Literal["all_rooms"] = "all_rooms"
     rooms: List[RoomInfo]
-class WsRoomCreate(BaseModel):
-    event_type: Literal["room_create"] = "room_create"
-    room: RoomInfo
 class WsRoomChatClear(BaseModel):
     event_type: Literal["room_chat_clear"] = "room_chat_clear"
     username: str
     room_name: str
-
+class WsRoomCreate(BaseModel):
+    event_type: Literal["room_create"] = "room_create"
+    room: RoomInfo
+class WsRoomCreateResponse(BaseModel):
+    event_type: Literal["room_create_response"] = "room_create_response"
+    room_name: str
+class WsRoomCreateReject(BaseModel):
+    event_type: Literal["room_create_reject"] = "room_create_reject"
+    response: str
+#### Room switching, note that the client will not have switched rooms until it receives a WsRoomSwitchResponse
 class WsRoomSwitchRequest(BaseModel):
     event_type: Literal["room_switch_request"] = "room_switch_request"
     room_name: str
 class WsRoomSwitchResponse(BaseModel):
     event_type: Literal["room_switch_response"] = "room_switch_response"
     room_name: str
+class WsRoomSwitchReject(BaseModel):
+    event_type: Literal["room_switch_reject"] = "room_switch_reject"
+    response: str
 
 # The main event type, used for all WebSocket events
 # The event_type field is used to denote the type of event, so it is possible to e.g.
@@ -85,9 +94,12 @@ WsEvent = Annotated[
         WsUserLeaveEvent,
         WsAllRooms,
         WsRoomCreate,
+        WsRoomCreateResponse,
+        WsRoomCreateReject,
         WsRoomChatClear,
         WsRoomSwitchRequest,
         WsRoomSwitchResponse,
+        WsRoomSwitchReject,
     ],
     Field(discriminator="event_type"),
 ]
@@ -108,19 +120,23 @@ class ChatData(BaseModel):
     connected_users: List[Dict]
 
 # Unimplemented for now, will be added in case more work is needed!
-## Login/Register
+## Register
 class WsRegisterRequest(BaseModel):
     username: str
     password: str
 class WsRegisterResponse(BaseModel):
     response: str
-
+class WsRegisterReject(BaseModel):
+    response: str
+# Login
 class WsLoginRequest(BaseModel):
     username: str
     password: str
 class WsLoginResponse(BaseModel):
     response: str
-
+class WsLoginReject(BaseModel):
+    response: str
+## Groups
 class WsCreateGroupRequest(BaseModel):
     group_name: str
 class WsCreateGroupResponse(BaseModel):
