@@ -65,6 +65,9 @@ const WS_EVENT_TYPES = {
 
 function wsConnectUser(serverUrl, username) {
     try {
+        // If you've setup the config right, then serverUrl already contains all you need to connect to the server!
+        // Try printint it if you want to see it:
+        console.log(`Server URL: ${serverUrl}`);
         globalThis.websocket = new WebSocket(`${serverUrl}`);
 
         globalThis.websocket.addEventListener('error', (e) => {
@@ -86,7 +89,7 @@ function wsConnectUser(serverUrl, username) {
 
         globalThis.websocket.addEventListener('message', (msg) => {
             const message = JSON.parse(msg.data);
-            wsReceiveMessage(message);
+            wsReceiveMessage(message, username);
         });
 
     } catch (error) {
@@ -100,24 +103,28 @@ function wsConnectUser(serverUrl, username) {
 // ASSIGNMENT 2 SOLUTION: SEND AND RECEIVE MESSAGES
 // =============================================================================
 
-function wsSendMessage(websocket, message) {
+// This function is invoked by the UI code when you send a message (i.e. press enter or click send)
+function wsSendMessage(websocket, message, username) {
     if (!websocket) {
-        throw new Error('WebSocket is not connected');
+        console.error('WebSocket is not connected');
+        return;
     }
 
     websocket.send(JSON.stringify({
         event_type: WS_EVENT_TYPES.message,
-        username: window.chatConfig.username,
+        username: username,
         message: message,
     }));
 }
 
-function wsReceiveMessage(message) {
-    console.log('Received message:' + JSON.stringify(message));
+// NOTE: username is your username
+// And message is the message that you've just received
+function wsReceiveMessage(message, username) {
+    console.log('Received message:' + message);
 
     switch (message.event_type) {
         case WS_EVENT_TYPES.message:
-            const own = message.username === window.chatConfig.username ? "own" : "other";
+            const own = message.username === username ? "own" : "other";
             if (own === "other") {
                 window.addMessageToUI(message.message, own, message.username);
             }
@@ -126,7 +133,7 @@ function wsReceiveMessage(message) {
         case WS_EVENT_TYPES.message_history:
             message.messages.forEach((msg) => {
                 console.log(`message ${msg.message}, ${msg}`);
-                const own = msg.username === window.chatConfig.username ? "own" : "other";
+                const own = msg.username === username ? "own" : "other";
                 window.addMessageToUI(msg.message, own, msg.username);
             });
             break;
@@ -139,7 +146,7 @@ function wsReceiveMessage(message) {
         case WS_EVENT_TYPES.users_online:
             window.addSelfAsOnline();
             message.users.forEach((user) => {
-                if (user.username !== window.chatConfig.username) {
+                if (user.username !== username) {
                     window.addMemberToList(user.username, user.status);
                 }
             });

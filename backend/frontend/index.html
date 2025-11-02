@@ -1075,7 +1075,7 @@
                 if (window.chatConfig.use_rest) {
                     sendMessage(window.getRestAddress(), window.chatConfig.username, message);
                 } else {
-                    wsSendMessage(globalThis.websocket, message);
+                    wsSendMessage(globalThis.websocket, message, window.chatConfig.username);
                 }
                 addMessageToUI(message, 'own');
                 messageInput.value = '';
