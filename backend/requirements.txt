@@ -2,3 +2,5 @@ fastapi
 uvicorn
 websockets
 bcrypt
+httpx
+pytest
