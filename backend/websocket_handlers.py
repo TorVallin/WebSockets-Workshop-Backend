@@ -199,12 +199,13 @@ class WebSocketManager:
         await self.send_connection_response(user)
         await self.send_rooms(user, managers)
 
-    async def join_chat(self, user: WebSocketConnection) -> None | WsRoomSwitchRequest:
+    async def join_chat(self, user: WebSocketConnection, shouldSendChatState: bool) -> None | WsRoomSwitchRequest:
         print(f"User '{user.username}' connected, starting the WebSocket handler")
         # Send past chats and notify other users that a new user has joined
-        await self.send_past_chats(user)
-        await self.send_online_users(user)
-        await self.broadcast(user, WsUserJoinEvent(username=user.username))
+        if shouldSendChatState:
+            await self.send_past_chats(user)
+            await self.send_online_users(user)
+            await self.broadcast(user, WsUserJoinEvent(username=user.username))
         return await user.receive_loop()
 
     async def validate_username(self, user_websocket, username: str) -> bool:
@@ -290,10 +291,16 @@ async def ws_connect_user(websocket: WebSocket, room_name: str):
 
         await manager.send_startup_data(user, storage.managers)
 
+        shouldSendChatState = True
         while True:
-            exit_reason = await manager.join_chat(user)
+            exit_reason = await manager.join_chat(user, shouldSendChatState)
             if isinstance(exit_reason, WsRoomSwitchRequest):
-                manager = await switch_room_for_user(user, manager.room_name, exit_reason.room_name)
+                newManager = await switch_room_for_user(user, manager.room_name, exit_reason.room_name)
+                if newManager:
+                    manager = newManager
+                    shouldSendChatState = True
+                else:
+                    shouldSendChatState = False
             else:
                 print(f"User '{user.username}' disconnected, exiting ws_connect_user")
                 return
@@ -301,6 +308,7 @@ async def ws_connect_user(websocket: WebSocket, room_name: str):
         print(f"ws_connect_user: Connection error {e}")
     finally:
         if user:
+            print(f"User '{user.username}' disconnected, cleaning up")
             await user.close()
             storage.remove_user(user.username)
             if manager:
@@ -330,13 +338,15 @@ async def broadcast_all_rooms(managers: Dict[str, WebSocketManager], message: Ws
     for room_name in managers:
         await managers[room_name].server_broadcast(message)
 
-async def switch_room_for_user(user: WebSocketConnection, old_room_name: str, new_room_name: str) -> WebSocketManager:
+async def switch_room_for_user(user: WebSocketConnection, old_room_name: str, new_room_name: str) -> WebSocketManager | None:
     print(f"Attempting to switch user {user.username} from room {old_room_name} to {new_room_name}")
     if new_room_name not in storage.managers:
         print(f"Room {new_room_name} not found, failing room switch for user ")
-        return storage.managers[old_room_name]
+        await user.queue_message(WsRoomSwitchReject(response=f"Room {new_room_name} not found").model_dump_json())
+        return None
 
     storage.managers[old_room_name].websockets.pop(user.user_uuid)
+    await storage.managers[old_room_name].broadcast(user, WsUserLeaveEvent(username=user.username))
 
     broadcast_func = lambda user, message : storage.managers[new_room_name].broadcast(user, message)
     user.broadcast_func = broadcast_func
