@@ -291,11 +291,10 @@ async def ws_connect_user(websocket: WebSocket, room_name: str):
         user = await manager.setup_user(websocket)
         if not user:
             return
+        await manager.send_startup_data(user, storage.managers)
         if room_is_new:
             manager.creator = user.username
             await broadcast_new_room_all(storage.managers, room_name, user.username)
-
-        await manager.send_startup_data(user, storage.managers)
 
         shouldSendChatState = True
         while True:

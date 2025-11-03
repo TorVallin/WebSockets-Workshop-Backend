@@ -20,16 +20,15 @@ def ws_for(client: TestClient, username: str, room_name: str = GLOBAL_ROOM_NAME)
     with client.websocket_connect(url) as ws:
         ws.send_text(WsConnectionRequest(username=username).model_dump_json())
         try:
-            if room_name != GLOBAL_ROOM_NAME:
-                room_create = WsRoomCreate.model_validate_json(ws.receive_text())
-                assert room_create.room.room_name == room_name
-
             response = WsConnectionResponse.model_validate_json(ws.receive_text())
             assert response.username == username
             rooms = WsAllRooms.model_validate_json(ws.receive_text())
             assert rooms.rooms[0].room_name == GLOBAL_ROOM_NAME
             if room_name != GLOBAL_ROOM_NAME:
-                assert rooms.rooms[1].room_name == room_name
+                assert room_name in [room.room_name for room in rooms.rooms]
+            if room_name != GLOBAL_ROOM_NAME:
+                room_create = WsRoomCreate.model_validate_json(ws.receive_text())
+                assert room_create.room.room_name == room_name
             yield ws
         except ValidationError as e:
             assert e == None
