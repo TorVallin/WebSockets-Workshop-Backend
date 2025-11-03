@@ -13,14 +13,26 @@ def client():
         yield c
 
 @contextmanager
-def ws_for(client: TestClient, username: str):
-    with client.websocket_connect("/ws") as ws:
+def ws_for(client: TestClient, username: str, room_name: str = GLOBAL_ROOM_NAME):
+    url = f"/ws"
+    if room_name != GLOBAL_ROOM_NAME:
+        url = f"/ws/{room_name}"
+    with client.websocket_connect(url) as ws:
         ws.send_text(WsConnectionRequest(username=username).model_dump_json())
-        response = WsConnectionResponse.model_validate_json(ws.receive_text())
-        assert response.username == username
-        rooms = WsAllRooms.model_validate_json(ws.receive_text())
-        assert rooms.rooms[0].room_name == GLOBAL_ROOM_NAME
-        yield ws
+        try:
+            if room_name != GLOBAL_ROOM_NAME:
+                room_create = WsRoomCreate.model_validate_json(ws.receive_text())
+                assert room_create.room.room_name == room_name
+
+            response = WsConnectionResponse.model_validate_json(ws.receive_text())
+            assert response.username == username
+            rooms = WsAllRooms.model_validate_json(ws.receive_text())
+            assert rooms.rooms[0].room_name == GLOBAL_ROOM_NAME
+            if room_name != GLOBAL_ROOM_NAME:
+                assert rooms.rooms[1].room_name == room_name
+            yield ws
+        except ValidationError as e:
+            assert e == None
 
 def test_ws_connect_sequence(client):
     with ws_for(client, "test_user") as ws:
@@ -137,3 +149,9 @@ def test_ws_switch_room_does_not_exist(client):
         receive_on_join_messages(ws)
         ws.send_text(WsRoomSwitchRequest(room_name=room_name).model_dump_json())
         receive_room_switch_reject(ws, f"Room {room_name} not found")
+
+def test_ws_join_new_room(client):
+    room_name = "new_room_1"
+    user = "test_user1234"
+    with ws_for(client, user, room_name) as ws:
+        pass

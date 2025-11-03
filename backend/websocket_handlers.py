@@ -185,7 +185,7 @@ class WebSocketManager:
             userConnectionReq = WsConnectionRequest.model_validate_json(userConnectionReq)
         except ValidationError as e:
             print(f"userConnectionReq {e}")
-            await websocket.send_text(UserConnectionResponse(response=f"Invalid request {e}").model_dump_json())
+            await websocket.send_text(WsConnectionReject(response=f"Invalid request {e}").model_dump_json())
             return None
         if not await self.validate_username(websocket, userConnectionReq.username):
             return None
