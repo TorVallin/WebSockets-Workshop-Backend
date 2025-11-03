@@ -52,10 +52,13 @@ const WS_EVENT_TYPES = {
     user_join: 'user_join',
     user_leave: 'user_leave',
     all_rooms: 'all_rooms',
+    // NOTE:There is no special response for room_create, the room_create will be sent back to the client on success
     room_create: 'room_create',
+    room_create_reject: 'room_create_reject',
     room_chat_clear: 'room_chat_clear',
     room_switch_request: 'room_switch_request',
     room_switch_response: 'room_switch_response',
+    room_switch_reject: 'room_switch_reject',
 };
 
 
@@ -129,7 +132,6 @@ function wsReceiveMessage(message, username) {
                 window.addMessageToUI(message.message, own, message.username);
             }
             break;
-
         case WS_EVENT_TYPES.message_history:
             message.messages.forEach((msg) => {
                 console.log(`message ${msg.message}, ${msg}`);
@@ -152,7 +154,6 @@ function wsReceiveMessage(message, username) {
             });
             window.updateOnlineCount();
             break;
-
         case WS_EVENT_TYPES.user_join:
             if (message.username === window.chatConfig.username) {
                 return;
@@ -161,7 +162,6 @@ function wsReceiveMessage(message, username) {
             window.addMemberToList(message.username, 'online');
             window.updateOnlineCount();
             break;
-
         case WS_EVENT_TYPES.user_leave:
             if (message.username === window.chatConfig.username) {
                 return;
@@ -170,7 +170,6 @@ function wsReceiveMessage(message, username) {
             window.removeMemberFromList(message.username);
             window.updateOnlineCount();
             break;
-
         case WS_EVENT_TYPES.system:
             createToastForSeverity(message.message, message.severity);
             break;
@@ -191,7 +190,6 @@ function wsReceiveMessage(message, username) {
                 window.addRoomToList(room.room_name, false);
             })
             break;
-
         case WS_EVENT_TYPES.room_create:
             if (message.room.room_name == "Global") {
                 return;
@@ -199,7 +197,9 @@ function wsReceiveMessage(message, username) {
             window.addRoomToList(message.room.room_name, false);
             Toast.success(`Room ${message.room.room_name} created by ${message.room.room_creator}`);
             break;
-
+        case WS_EVENT_TYPES.room_create_reject:
+            createToastForSeverity(message.response, 'error');
+            break;
         case WS_EVENT_TYPES.room_switch_response:
             if (message.room_name === window.chatConfig.room_name) {
                 return;
@@ -207,7 +207,9 @@ function wsReceiveMessage(message, username) {
             console.log(`Room switched to ${message.room_name}`);
             window.switchToRoom(message.room_name);
             break;
-
+        case WS_EVENT_TYPES.room_switch_reject:
+            createToastForSeverity(message.response, 'error');
+            break;
         case WS_EVENT_TYPES.room_chat_clear:
             window.clearChat(message.room_name);
             break;

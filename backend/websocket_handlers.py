@@ -101,19 +101,25 @@ class WebSocketConnection:
                     continue
 
                 if isinstance(user_msg, WsMessage):
-                    await self.send_message(user_msg)
+                    if user_msg.username == self.username:
+                        await self.send_message(user_msg)
+                    else:
+                        await self.broadcast_func(self, WsSystemMessage(message=f"{self.username} tried sending a message as {user_msg.username}. They're not getting away with it!", severity="warning"))
                 elif isinstance(user_msg, WsTypingEvent):
-                    await self.broadcast_func(self, user_msg)
+                    if user_msg.username == self.username:
+                        await self.broadcast_func(self, user_msg)
+                    else:
+                        await self.broadcast_func(self, WsSystemMessage(message=f"{self.username} tried typing as {user_msg.username}. They're not getting away with it!", severity="warning"))
                 elif isinstance(user_msg, WsRoomSwitchRequest):
                     return user_msg
                 elif isinstance(user_msg, WsRoomCreate):
                     room_validation = validate_room_name(user_msg.room.room_name)
                     if room_validation  != "":
-                        await self.websocket.send_text(WsSystemMessage(message=f"{self.username} tried creating a room with an invalid name: {room_validation}", severity="error").model_dump_json())
+                        await self.websocket.send_text(WsRoomCreateReject(response=f"{self.username} tried creating a room with an invalid name: {room_validation}").model_dump_json())
                         continue
                     (_, room_is_new) = await create_and_broadcast_new_room(user_msg.room.room_name, self.username)
                     if not room_is_new:
-                        await self.websocket.send_text(WsSystemMessage(message=f"{self.username} tried creating a room that already exists!", severity="error").model_dump_json())
+                        await self.websocket.send_text(WsRoomCreateReject(response=f"{self.username} tried creating a room that already exists!").model_dump_json())
                 elif isinstance(user_msg, WsRoomChatClear):
                     if user_msg.room_name == GLOBAL_ROOM_NAME:
                         await self.broadcast_func(self, WsSystemMessage(message=f"{self.username} tried clearing the global room!", severity="error"))

@@ -60,9 +60,6 @@ class WsRoomChatClear(BaseModel):
 class WsRoomCreate(BaseModel):
     event_type: Literal["room_create"] = "room_create"
     room: RoomInfo
-class WsRoomCreateResponse(BaseModel):
-    event_type: Literal["room_create_response"] = "room_create_response"
-    room_name: str
 class WsRoomCreateReject(BaseModel):
     event_type: Literal["room_create_reject"] = "room_create_reject"
     response: str
@@ -94,7 +91,6 @@ WsEvent = Annotated[
         WsUserLeaveEvent,
         WsAllRooms,
         WsRoomCreate,
-        WsRoomCreateResponse,
         WsRoomCreateReject,
         WsRoomChatClear,
         WsRoomSwitchRequest,
