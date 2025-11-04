@@ -52,7 +52,6 @@ const WS_EVENT_TYPES = {
     user_join: 'user_join',
     user_leave: 'user_leave',
     all_rooms: 'all_rooms',
-    // NOTE:There is no special response for room_create, the room_create will be sent back to the client on success
     room_create: 'room_create',
     room_create_reject: 'room_create_reject',
     room_chat_clear: 'room_chat_clear',
@@ -106,7 +105,8 @@ function wsConnectUser(serverUrl, username) {
 // ASSIGNMENT 2 SOLUTION: SEND AND RECEIVE MESSAGES
 // =============================================================================
 
-// This function is invoked by the UI code when you send a message (i.e. press enter or click send)
+// This function is invoked by the UI when you send a message (i.e. press enter or click send)
+// via the text input field.
 function wsSendMessage(websocket, message, username) {
     if (!websocket) {
         console.error('WebSocket is not connected');
@@ -120,8 +120,7 @@ function wsSendMessage(websocket, message, username) {
     }));
 }
 
-// NOTE: username is your username
-// And message is the message that you've just received
+// Username is your username, and message is the message that you've just received
 function wsReceiveMessage(message, username) {
     console.log('Received message:' + message);
 
@@ -265,7 +264,10 @@ window.setInterval(() => {
 // ASSIGNMENT 5 SOLUTION: ROOM MANAGEMENT
 // =============================================================================
 
+// This is invoked by the UI after submitting a room name in the room creation prompt.
 function wsSendRoomCreate(websocket, roomName) {
+    // Note that there is no special confirmation for room_create messages. Instead, the same room_create will be sent back to the client on success.
+    // The WS_EVENT_TYPES.room_create_reject will be sent back to the client on failure, e.g. due to invalid room name
     websocket.send(JSON.stringify(
         {
             event_type: WS_EVENT_TYPES.room_create,
@@ -278,6 +280,8 @@ function wsSendRoomCreate(websocket, roomName) {
     ))
 }
 
+// This is invoked by the UI code when a room from the room list is clicked.
+// The roomName will be the name of the room that was clicked.
 function wsSendRoomSwitchReq(websocket, roomName) {
     websocket.send(JSON.stringify({
         event_type: WS_EVENT_TYPES.room_switch_request,
@@ -285,6 +289,8 @@ function wsSendRoomSwitchReq(websocket, roomName) {
     }));
 }
 
+// This is invoked by the UI code when the "Clear Chat" button is clicked.
+// The roomName will be the room whose chat is being cleared.
 function wsSendRoomChatClear(websocket, roomName) {
     websocket.send(JSON.stringify({
         event_type: WS_EVENT_TYPES.room_chat_clear,
