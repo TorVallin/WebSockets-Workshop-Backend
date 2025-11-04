@@ -1090,11 +1090,16 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type === 'own' ? 'message-own' : ''}`;
 
+            // We create this invisible span to prevent the message contents from being treated as HTML or JS.
+            // By setting the textContent of the span, it'll always be treated as plain text.
+            const msgSpan = document.createElement('span');
+            msgSpan.textContent = message;
+
             let messageHTML = '';
             if (type === 'own') {
                 messageHTML = `
                     <div class="message-bubble own">
-                        ${message}
+                        ${msgSpan.innerHTML}
                     </div>
                     <div class="message-info">${currentTime}</div>
                 `;
@@ -1102,7 +1107,7 @@
                 messageHTML = `
                     <div class="message-bubble other">
                         <div class="fw-bold mb-1" style="font-size: 0.8rem; color: var(--lighter-purple);">${username || 'Anonymous'}</div>
-                        ${message}
+                        ${msgSpan.innerHTML}
                     </div>
                     <div class="message-info">${currentTime}</div>
                 `;
