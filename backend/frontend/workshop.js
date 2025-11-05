@@ -122,20 +122,17 @@ function wsSendMessage(websocket, message, username) {
 
 // Username is your username, and message is the message that you've just received
 function wsReceiveMessage(message, username) {
-    console.log('Received message:' + message);
+    console.log(`Received message of type ${message.event_type}:`, message);
 
     switch (message.event_type) {
         case WS_EVENT_TYPES.message:
-            const own = message.username === username ? "own" : "other";
-            if (own === "other") {
-                window.addMessageToUI(message.message, own, message.username);
+            if (message.username !== window.chatConfig.username) {
+                window.addMessageToUI(message.message, message.username);
             }
             break;
         case WS_EVENT_TYPES.message_history:
             message.messages.forEach((msg) => {
-                console.log(`message ${msg.message}, ${msg}`);
-                const own = msg.username === username ? "own" : "other";
-                window.addMessageToUI(msg.message, own, msg.username);
+                window.addMessageToUI(msg.message, msg.username);
             });
             break;
 
